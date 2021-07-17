@@ -16,8 +16,8 @@ p_inset_depth = pcb_t / 2.0
 #parameter definitions
 p_thickness =  1.0 #Thickness of the box walls
 
-p_outerWidth = pcb_w + 2 * p_thickness + p_tolerance #Outer width of box enclosure
-p_outerLength = pcb_h + 2 * p_thickness + p_tolerance #Outer length of box enclosure
+p_outerWidth = pcb_w + 2 * p_thickness #Outer width of box enclosure
+p_outerLength = pcb_h + 2 * p_thickness #Outer length of box enclosure
 p_outerHeight = p_under_pcb_depth + p_thickness + p_inset_depth#Outer height of box enclosure
 
 p_sideRadius = pcb_radius #Radius for the curves around the sides of the box
@@ -27,7 +27,7 @@ p_topAndBottomRadiusInner =  p_topAndBottomRadius
 p_screwpostID = 2.5 #Inner Diameter of the screw post holes, should be roughly screw diameter not including threads
 
 p_boreDiameter = 4.5 #Diameter of the counterbore hole, if any
-p_boreDepth = 0 #Depth of the counterbore hole, if
+p_boreDepth = 0.5 #Depth of the counterbore hole, if
 p_countersinkDiameter = 0.0 #Outer diameter of countersink.  Should roughly match the outer diameter of the screw head
 p_countersinkAngle = 90.0 #Countersink angle (complete angle between opposite sides, not from center to one side)
 p_flipLid = True #Whether to place the lid with the top facing down or not.
@@ -67,17 +67,25 @@ box = oshell.cut(ishell)
 
 # Top strip hole
 tbar_hole_depth = 1.5
+strip_hole_y_offset = p_outerLength / 2.0 - p_strip_dia / 2.0 + 0.5
 tbar_top = (cq.Workplane("ZY")
-  .workplane(origin=(0, p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia, 1.5), offset=(-p_strip_width / 2.0))
-  .circle(p_strip_dia)
+  .workplane(
+    origin=(0, strip_hole_y_offset, 0), 
+    offset=(-p_strip_width / 2.0))
+  .circle(p_tbar_space_height)
   .extrude(p_strip_width)
-  .workplane(origin=(0, p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia / 2.0 + 0.5, p_strip_dia / 2.0 + 0.5), offset=(-p_strip_width / 2.0 - tbar_hole_depth))
+  .workplane(
+    origin=(0, p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia / 2.0 + 0.5, p_strip_dia / 2.0 + 0.5), 
+    offset=(-p_strip_width / 2.0 - tbar_hole_depth))
   .circle(p_tbar_hole_r)
   .extrude(p_strip_width + tbar_hole_depth * 2.0)
 )
+
 tbar_bottom = (cq.Workplane("ZY")
-  .workplane(origin=(0, -(p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia), 1.5), offset=(-p_strip_width / 2.0))
-  .circle(p_strip_dia)
+  .workplane(
+    origin=(0, -strip_hole_y_offset, 0), 
+    offset=(-p_strip_width / 2.0))
+  .circle(p_tbar_space_height)
   .extrude(p_strip_width)
   .workplane(
     origin=(0, -(p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia / 2.0 + 0.5), p_strip_dia / 2.0 + 0.5), 
@@ -88,37 +96,50 @@ tbar_bottom = (cq.Workplane("ZY")
 with_tbars = box.cut(tbar_top).cut(tbar_bottom)
 
 # side holes (buttons, etc)
-offset_to_button_1 = 5.7
-offset_to_button_2 = 32.5
-button_width  = 6.7
+pcb_top = p_outerLength / 2.0 - p_thickness
+pcb_top_to_top_button = 7.5
+top_button_to_usb = 7.5
+usb_to_bottom_button = 6.5
+button_width  = 4.6
 button_height = 2.0
-usb_b_width  = 8.4
+usb_b_width  = 7.4
 usb_b_height = 3.0
-distance_to_usb = 17.9
-vib_motor_width  = 11.0
-vib_motor_height = 2.8
 
 holes_left = (cq.Workplane("YZ")
-  .moveTo(p_outerLength / 2.0 - p_thickness - offset_to_button_1, p_outerHeight)
-  .vLine(-button_height)
-  .hLine(-button_width - 6.5)
-  .vLine(-(usb_b_height - button_height))
+  .moveTo(pcb_top - (pcb_top_to_top_button - button_height), p_outerHeight)
+  .vLine(-p_inset_depth)
+  .tangentArcPoint((-button_height, -button_height))
+  .hLine(-button_width)
+  .hLine(-(top_button_to_usb - (usb_b_height - button_height)))
+  .line(-(usb_b_height - button_height), -(usb_b_height - button_height))
   .hLine(-usb_b_width)
-  .vLine(usb_b_height - button_height)
-  .hLine(-6.5 - button_width)
-  .vLine(button_height)
+  .line(-(usb_b_height - button_height), (usb_b_height - button_height))
+  .hLine(-(usb_to_bottom_button - (usb_b_height - button_height)))
+  .hLine(-button_width)
+  .tangentArcPoint((-button_height, button_height))
+  .vLine(p_inset_depth)
   .close()
   .extrude(-p_outerWidth / 2.0)
 )
+
+top_button_to_vib = 5.5
+vib_to_bottom_button = 6.0
+vib_motor_width  = 10.0
+vib_motor_height = 2.8
+
 holes_right = (cq.Workplane("YZ")
-  .moveTo(p_outerLength / 2.0 - p_thickness - offset_to_button_1, p_outerHeight)
-  .vLine(-button_height)
-  .hLine(-button_width - 2.0)
-  .vLine(-(vib_motor_height - button_height))
+  .moveTo(pcb_top - (pcb_top_to_top_button - button_height), p_outerHeight)
+  .vLine(-p_inset_depth)
+  .tangentArcPoint((-button_height, -button_height))
+  .hLine(-button_width)
+  .hLine(-(top_button_to_vib - (vib_motor_height - button_height)))
+  .line(-(vib_motor_height - button_height), -(vib_motor_height - button_height))
   .hLine(-vib_motor_width)
-  .vLine(vib_motor_height - button_height)
-  .hLine(-6.0 - button_width)
-  .vLine(button_height)
+  .line(-(vib_motor_height - button_height), (vib_motor_height - button_height))
+  .hLine(-(vib_to_bottom_button - (vib_motor_height - button_height)))
+  .hLine(-button_width)
+  .tangentArcPoint((-button_height, button_height))
+  .vLine(p_inset_depth)
   .close()
   .extrude(p_outerWidth / 2.0)
 )
@@ -128,34 +149,34 @@ with_side_holes = with_tbars.cut(holes_left).cut(holes_right)
 # pcb inset
 pcb_inset = (cq.Workplane("XY")
   .workplane(offset=p_outerHeight)
-  .rect(pcb_w, pcb_h)
+  .rect(pcb_w + p_tolerance, pcb_h + p_tolerance)
   .extrude(-p_inset_depth)
   .edges("|Z")
   .fillet(pcb_radius)
 )
-#debug(pcb_inset)
 with_inset = with_side_holes.cut(pcb_inset)
 
 # fasteners
-fastener_overhang = 0.5
+fastener_overhang = 0.75
 fastener_height = fastener_overhang + p_thickness + p_thickness
-fastener_depth = 5.0
+fastener_depth = 6.5
 fastener_hole_point = (0, p_outerHeight - p_thickness - p_screwpostID / 2.0 + 0.2)
 
 fastener_top = (cq.Workplane("XY")
   .workplane(
     origin=(0, (p_outerLength / 2.0 - fastener_height / 2.0) + p_thickness, 0), 
-    offset=(p_outerHeight + p_thickness + pcb_t - p_inset_depth))
+    offset=(p_outerHeight + p_thickness + (pcb_t - p_inset_depth + p_tolerance)))
   .rect(pcb_w * 0.5, fastener_height)
   .extrude(-fastener_depth)
   .edges("|Z or(#Z)")
   .fillet(1.0)
   .faces("#X and >X")
   .workplane(
-    origin=(0, (p_outerLength / 2.0 - fastener_height / 2.0), 0), 
+    origin=(0, 0, 0), 
     offset=(-p_thickness))
-  .rect(pcb_w * 0.5, fastener_height)
+  .rect(pcb_w , p_outerLength)
   .cutBlind(-fastener_depth)
+  
   .faces("|Y and >Y")
   .workplane(origin=(0, 0, 0))
   .pushPoints( [ fastener_hole_point])
@@ -166,24 +187,22 @@ fastener_top = (cq.Workplane("XY")
 fastener_bottom = (cq.Workplane("XY")
   .workplane(
     origin=(0, -(p_outerLength / 2.0 - fastener_height / 2.0) - p_thickness, 0), 
-    offset=(p_outerHeight + p_thickness + pcb_t - p_inset_depth))
+    offset=(p_outerHeight + p_thickness + (pcb_t - p_inset_depth + p_tolerance)))
   .rect(pcb_w * 0.5, fastener_height)
   .extrude(-fastener_depth)
   .edges("|Z or(#Z)")
   .fillet(1.0)
   .faces("#X and >X")
   .workplane(
-    origin=(0, -(p_outerLength / 2.0 - fastener_height / 2.0) + p_thickness, 0), 
+    origin=(0,0,0),
     offset=(-p_thickness))
-  .rect(pcb_w * 0.5, fastener_height)
+  .moveTo(p_outerWidth / 2.0,- (p_outerLength / 2.0 - (p_thickness - p_tolerance / 2.0)))
+  .hLine(-p_outerWidth)
+  .vLine(pcb_h * 0.5)
+  .hLine(p_outerWidth)
+  .close()
   .cutBlind(-fastener_depth)
 )
-
-fastener_top = (fastener_top
-  .translate((0, fastener_depth, -p_outerHeight + fastener_height / 2.0))
-  .rotateAboutCenter((1,0,0), -90)
-)
-#debug(fastener_top)
 
 with_fastener = (with_inset
   .union(fastener_bottom)
@@ -192,6 +211,12 @@ with_fastener = (with_inset
   .pushPoints( [ fastener_hole_point])
   .hole(p_screwpostID, p_outerLength / 2.0)
 )
+
+fastener_top = (fastener_top
+  .translate((0, fastener_depth, -p_outerHeight + (fastener_height + p_tolerance) / 2.0))
+  .rotateAboutCenter((1,0,0), -90)
+)
+
 result = with_fastener.union(fastener_top)
 
 #return the combined result
