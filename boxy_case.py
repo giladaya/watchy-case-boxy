@@ -5,20 +5,21 @@ import watchy_sizes
 
 # New params
 p_tolerance = 0.5
-p_ledge_h = pcb_y_to_slot + pcb_slot_h
-p_strip_width = 24 + 0.5
-p_strip_dia = 4.0
-p_tbar_space_height = p_strip_dia + 1.0
-p_tbar_hole_r = 0.5
-p_under_pcb_depth = 8.0
-p_inset_depth = pcb_t / 2.0
+p_ledge_h = pcb_y_to_slot + pcb_slot_h # top and bottom inner "ledge"
+p_strap_width = 24 + 0.5
+p_strap_dia = 4.0
+p_tbar_space_height = p_strap_dia + 1.0
+p_tbar_hole_r = 0.5 # Radius of t-bar pin
+p_under_pcb_depth = 8.0 # space for battery, etc.
+p_inset_depth = pcb_t
+p_flipFastener = True
 
 #parameter definitions
 p_thickness =  1.0 #Thickness of the box walls
 
-p_outerWidth = pcb_w + 2 * p_thickness #Outer width of box enclosure
-p_outerLength = pcb_h + 2 * p_thickness #Outer length of box enclosure
-p_outerHeight = p_under_pcb_depth + p_thickness + p_inset_depth#Outer height of box enclosure
+p_outerWidth = pcb_w + 2 * p_thickness # Total outer width of box enclosure
+p_outerLength = pcb_h + 2 * p_thickness #Total outer length of box enclosure
+p_outerHeight = p_under_pcb_depth + p_thickness + p_inset_depth #Total outer height of box enclosure
 
 p_sideRadius = pcb_radius #Radius for the curves around the sides of the box
 p_topAndBottomRadius =  p_outerHeight * 0.6 #Radius for the curves on the top and bottom edges of the box
@@ -30,8 +31,14 @@ p_boreDiameter = 4.5 #Diameter of the counterbore hole, if any
 p_boreDepth = 0.5 #Depth of the counterbore hole, if
 p_countersinkDiameter = 0.0 #Outer diameter of countersink.  Should roughly match the outer diameter of the screw head
 p_countersinkAngle = 90.0 #Countersink angle (complete angle between opposite sides, not from center to one side)
-p_flipLid = True #Whether to place the lid with the top facing down or not.
-p_lipHeight =  1.0 #Height of lip on the underside of the lid.\nSits inside the box body for a snug fit.
+
+# Watchy model
+#watchy = cq.importers.importStep('/home/gilad/sources/watchy/cases/Watchy.step')
+#watchy = (watchy
+#  .rotateAboutCenter((0,1,0), 180)
+#  .translate((-pcb_w / 2.0 + 0.8, -pcb_h / 2.0, p_outerHeight - p_inset_depth - 0.5))
+#)
+#debug(watchy)
 
 #outer shell
 oshell = (cq.Workplane("XY")
@@ -39,7 +46,6 @@ oshell = (cq.Workplane("XY")
   .extrude(p_outerHeight)
 )
 
-#debug(oshell.edges(cq.NearestToPointSelector((0,0,0))))
 #weird geometry happens if we make the fillets in the wrong order
 if p_sideRadius > p_topAndBottomRadius:
     oshell = oshell.edges("|Z").fillet(p_sideRadius)
@@ -57,7 +63,6 @@ ishell = (oshell.faces("<Z").workplane(p_thickness,True)
 )
 ishell = (ishell.edges("|Z")
   .fillet(p_sideRadius - p_thickness)
-  #.edges("#Z and >Z[1]").fillet(p_topAndBottomRadius)
   .edges(cq.NearestToPointSelector((0,0,0)))
   .fillet(p_topAndBottomRadiusInner)
 )
@@ -67,31 +72,31 @@ box = oshell.cut(ishell)
 
 # Top strip hole
 tbar_hole_depth = 1.5
-strip_hole_y_offset = p_outerLength / 2.0 - p_strip_dia / 2.0 + 0.5
+strip_hole_y_offset = p_outerLength / 2.0 - p_strap_dia / 2.0 + 0.5
 tbar_top = (cq.Workplane("ZY")
   .workplane(
     origin=(0, strip_hole_y_offset, 0), 
-    offset=(-p_strip_width / 2.0))
+    offset=(-p_strap_width / 2.0))
   .circle(p_tbar_space_height)
-  .extrude(p_strip_width)
+  .extrude(p_strap_width)
   .workplane(
-    origin=(0, p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia / 2.0 + 0.5, p_strip_dia / 2.0 + 0.5), 
-    offset=(-p_strip_width / 2.0 - tbar_hole_depth))
+    origin=(0, p_outerLength / 2.0 - p_topAndBottomRadius + p_strap_dia / 2.0 + 0.5, p_strap_dia / 2.0 + 0.5), 
+    offset=(-p_strap_width / 2.0 - tbar_hole_depth))
   .circle(p_tbar_hole_r)
-  .extrude(p_strip_width + tbar_hole_depth * 2.0)
+  .extrude(p_strap_width + tbar_hole_depth * 2.0)
 )
 
 tbar_bottom = (cq.Workplane("ZY")
   .workplane(
     origin=(0, -strip_hole_y_offset, 0), 
-    offset=(-p_strip_width / 2.0))
+    offset=(-p_strap_width / 2.0))
   .circle(p_tbar_space_height)
-  .extrude(p_strip_width)
+  .extrude(p_strap_width)
   .workplane(
-    origin=(0, -(p_outerLength / 2.0 - p_topAndBottomRadius + p_strip_dia / 2.0 + 0.5), p_strip_dia / 2.0 + 0.5), 
-    offset=(-p_strip_width / 2.0 - tbar_hole_depth))
+    origin=(0, -(p_outerLength / 2.0 - p_topAndBottomRadius + p_strap_dia / 2.0 + 0.5), p_strap_dia / 2.0 + 0.5), 
+    offset=(-p_strap_width / 2.0 - tbar_hole_depth))
   .circle(p_tbar_hole_r)
-  .extrude(p_strip_width + tbar_hole_depth * 2.0)
+  .extrude(p_strap_width + tbar_hole_depth * 2.0)
 )
 with_tbars = box.cut(tbar_top).cut(tbar_bottom)
 
@@ -159,13 +164,14 @@ with_inset = with_side_holes.cut(pcb_inset)
 # fasteners
 fastener_overhang = 0.75
 fastener_height = fastener_overhang + p_thickness + p_thickness
-fastener_depth = 6.5
-fastener_hole_point = (0, p_outerHeight - p_thickness - p_screwpostID / 2.0 + 0.2)
+fastener_depth = p_outerHeight - p_tbar_space_height + p_thickness 
+fastener_hole_point = (0, p_outerHeight * 0.75)
+fastener_top_thickness = p_thickness;
 
 fastener_top = (cq.Workplane("XY")
   .workplane(
     origin=(0, (p_outerLength / 2.0 - fastener_height / 2.0) + p_thickness, 0), 
-    offset=(p_outerHeight + p_thickness + (pcb_t - p_inset_depth + p_tolerance)))
+    offset=(p_outerHeight + fastener_top_thickness + (pcb_t - p_inset_depth)))
   .rect(pcb_w * 0.5, fastener_height)
   .extrude(-fastener_depth)
   .edges("|Z or(#Z)")
@@ -187,7 +193,7 @@ fastener_top = (cq.Workplane("XY")
 fastener_bottom = (cq.Workplane("XY")
   .workplane(
     origin=(0, -(p_outerLength / 2.0 - fastener_height / 2.0) - p_thickness, 0), 
-    offset=(p_outerHeight + p_thickness + (pcb_t - p_inset_depth + p_tolerance)))
+    offset=(p_outerHeight + p_thickness + (pcb_t - p_inset_depth)))
   .rect(pcb_w * 0.5, fastener_height)
   .extrude(-fastener_depth)
   .edges("|Z or(#Z)")
@@ -212,12 +218,18 @@ with_fastener = (with_inset
   .hole(p_screwpostID, p_outerLength / 2.0)
 )
 
-fastener_top = (fastener_top
-  .translate((0, fastener_depth, -p_outerHeight + (fastener_height + p_tolerance) / 2.0))
-  .rotateAboutCenter((1,0,0), -90)
-)
-
-result = with_fastener.union(fastener_top)
+if p_flipFastener:
+  fastener_top_f = (fastener_top
+    .translate((0, 8.0, -p_outerHeight + (fastener_height) / 2.0 + p_thickness))
+    .rotateAboutCenter((1,0,0), -90)
+  )
+  fastener_top = fastener_top.translate((0, fastener_height, 0))
+  result = (with_fastener
+    .union(fastener_top_f)
+    .union(fastener_top)
+  )
+else:
+  result = with_fastener.union(fastener_top)    
 
 #return the combined result
 show_object(result)
