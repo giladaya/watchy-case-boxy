@@ -5,3 +5,6 @@ Includes a case body and 2 copies of a fastener.
 Use a screw to attach the fastener to the body.  
 Designed for use with 24mm straps.
 Adjust the parameters at the top for your needs.  
+
+See photos folder for more photos.
+![Photo1](photos/photo1.jpg)
