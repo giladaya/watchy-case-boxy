@@ -1,7 +1,8 @@
 # import importlib
 # import cadquery as cq
 from watchy_sizes import *
-import watchy_sizes
+
+show_watchy = False
 
 # New params
 p_tolerance = 0.5
@@ -33,12 +34,13 @@ p_countersinkDiameter = 0.0 #Outer diameter of countersink.  Should roughly matc
 p_countersinkAngle = 90.0 #Countersink angle (complete angle between opposite sides, not from center to one side)
 
 # Watchy model
-#watchy = cq.importers.importStep('/home/gilad/sources/watchy/cases/Watchy.step')
-#watchy = (watchy
-#  .rotateAboutCenter((0,1,0), 180)
-#  .translate((-pcb_w / 2.0 + 0.8, -pcb_h / 2.0, p_outerHeight - p_inset_depth - 0.5))
-#)
-#debug(watchy)
+if show_watchy:
+  watchy = cq.importers.importStep('/home/gilad/sources/watchy/cases/Watchy.step')
+  watchy = (watchy
+    .rotateAboutCenter((0,1,0), 180)
+    .translate((-pcb_w / 2.0 + 0.8, -pcb_h / 2.0, p_outerHeight - p_inset_depth - 0.5))
+  )
+  debug(watchy)
 
 #outer shell
 oshell = (cq.Workplane("XY")
@@ -152,9 +154,14 @@ holes_right = (cq.Workplane("YZ")
 with_side_holes = with_tbars.cut(holes_left).cut(holes_right)
 
 # pcb inset
+slot_post_dia = pcb_slot_h - 0.1
 pcb_inset = (cq.Workplane("XY")
   .workplane(offset=p_outerHeight)
   .rect(pcb_w + p_tolerance, pcb_h + p_tolerance)
+  .moveTo(0,0)
+  .rect(pcb_w - 2.0 * pcb_x_to_slot - pcb_slot_h, pcb_h - 2.0 * pcb_y_to_slot - pcb_slot_h, forConstruction=True)
+  .vertices()
+  .circle(slot_post_dia / 2.0)
   .extrude(-p_inset_depth)
   .edges("|Z")
   .fillet(pcb_radius)
@@ -164,9 +171,9 @@ with_inset = with_side_holes.cut(pcb_inset)
 # fasteners
 fastener_overhang = 0.75
 fastener_height = fastener_overhang + p_thickness + p_thickness
-fastener_depth = p_outerHeight - p_tbar_space_height + p_thickness 
 fastener_hole_point = (0, p_outerHeight * 0.75)
-fastener_top_thickness = p_thickness;
+fastener_top_thickness = 1.5 * p_thickness;
+fastener_depth = p_outerHeight - p_tbar_space_height + fastener_top_thickness 
 
 fastener_top = (cq.Workplane("XY")
   .workplane(
@@ -179,7 +186,7 @@ fastener_top = (cq.Workplane("XY")
   .faces("#X and >X")
   .workplane(
     origin=(0, 0, 0), 
-    offset=(-p_thickness))
+    offset=(-fastener_top_thickness))
   .rect(pcb_w , p_outerLength)
   .cutBlind(-fastener_depth)
   
@@ -193,7 +200,7 @@ fastener_top = (cq.Workplane("XY")
 fastener_bottom = (cq.Workplane("XY")
   .workplane(
     origin=(0, -(p_outerLength / 2.0 - fastener_height / 2.0) - p_thickness, 0), 
-    offset=(p_outerHeight + p_thickness + (pcb_t - p_inset_depth)))
+    offset=(p_outerHeight + fastener_top_thickness + (pcb_t - p_inset_depth)))
   .rect(pcb_w * 0.5, fastener_height)
   .extrude(-fastener_depth)
   .edges("|Z or(#Z)")
@@ -201,7 +208,7 @@ fastener_bottom = (cq.Workplane("XY")
   .faces("#X and >X")
   .workplane(
     origin=(0,0,0),
-    offset=(-p_thickness))
+    offset=(-fastener_top_thickness))
   .moveTo(p_outerWidth / 2.0,- (p_outerLength / 2.0 - (p_thickness - p_tolerance / 2.0)))
   .hLine(-p_outerWidth)
   .vLine(pcb_h * 0.5)
