@@ -246,4 +246,4 @@ else:
 
 #return the combined result
 show_object(result)
-cq.exporters.export(result, "boxy.stl")
+cq.exporters.export(result, "STLs/boxy.stl")
